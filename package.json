@@ -9,7 +9,7 @@
     "dev": "live-server --port=3000"
   },
   "keywords": ["AI", "Excel", "Interview", "Assessment"],
-  "author": "Your Name",
+  "author": "Dilip Sharma",
   "license": "MIT",
   "devDependencies": {
     "live-server": "^1.2.2"
