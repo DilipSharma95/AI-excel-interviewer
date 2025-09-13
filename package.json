@@ -1,0 +1,17 @@
+{
+  "name": "ai-excel-interviewer",
+  "version": "1.0.0",
+  "description": "AI-Powered Excel Mock Interviewer",
+  "main": "index.html",
+  "scripts": {
+    "start": "serve -s .",
+    "build": "echo 'No build process needed for static files'",
+    "dev": "live-server --port=3000"
+  },
+  "keywords": ["AI", "Excel", "Interview", "Assessment"],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  }
+}

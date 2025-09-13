@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Excel Mock Interviewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 80vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="2" fill="rgba(255,255,255,0.1)"/></svg>') repeat;
+            animation: float 20s linear infinite;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateX(-100px);
+            }
+
+            100% {
+                transform: translateX(100px);
+            }
+        }
+
+        .header h1 {
+            font-size: 2.2em;
+            margin-bottom: 10px;
+            font-weight: 700;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8fafc;
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.ai {
+            justify-content: flex-start;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message-content {
+            max-width: 70%;
+            padding: 15px 20px;
+            border-radius: 18px;
+            position: relative;
+            word-wrap: break-word;
+        }
+
+        .message.ai .message-content {
+            background: white;
+            color: #2c3e50;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-bottom-left-radius: 5px;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 5px;
+        }
+
+        .input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e2e8f0;
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+        }
+
+        .input-group {
+            flex: 1;
+            position: relative;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+            resize: none;
+            font-family: inherit;
+            min-height: 50px;
+            max-height: 120px;
+        }
+
+        .input-field:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .send-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .send-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: #64748b;
+            font-style: italic;
+            padding: 10px 20px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 3px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #64748b;
+            animation: typingDot 1.5s infinite;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typingDot {
+
+            0%,
+            60%,
+            100% {
+                opacity: 0.3;
+                transform: scale(1);
+            }
+
+            30% {
+                opacity: 1;
+                transform: scale(1.2);
+            }
+        }
+
+        .progress-container {
+            padding: 15px 25px;
+            background: #f1f5f9;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-text {
+            font-size: 14px;
+            color: #64748b;
+            margin-top: 8px;
+            text-align: center;
+        }
+
+        .interview-complete {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .interview-complete h2 {
+            font-size: 1.8em;
+            margin-bottom: 15px;
+        }
+
+        .score-display {
+            font-size: 3em;
+            font-weight: bold;
+            margin: 20px 0;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .report-button {
+            background: white;
+            color: #059669;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .report-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 255, 255, 0.3);
+        }
+
+        .welcome-screen {
+            text-align: center;
+            padding: 50px 30px;
+        }
+
+        .welcome-screen h2 {
+            font-size: 2em;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .welcome-screen p {
+            color: #64748b;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+
+        .start-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 25px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .start-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .phase-indicator {
+            background: rgba(102, 126, 234, 0.1);
+            border-left: 4px solid #667eea;
+            padding: 12px 16px;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                height: 95vh;
+                margin: 10px;
+            }
+
+            .message-content {
+                max-width: 85%;
+            }
+
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .input-container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 AI Excel Mock Interviewer</h1>
+            <p>Advanced Technical Assessment for Finance & Analytics Roles</p>
+        </div>
+
+        <div id="welcomeScreen" class="welcome-screen">
+            <h2>Welcome to Your Excel Skills Assessment</h2>
+            <p>This AI-powered interview will evaluate your Microsoft Excel proficiency across formulas, data analysis,
+                and problem-solving. The session takes approximately 30-40 minutes and adapts to your skill level.</p>
+            <p><strong>What to expect:</strong><br>
+                • Interactive conversation about Excel concepts<br>
+                • Scenario-based questions<br>
+                • Immediate feedback and scoring<br>
+                • Comprehensive performance report</p>
+            <button class="start-button" onclick="startInterview()">Start Interview</button>
+        </div>
+
+        <div id="chatInterface" class="chat-container" style="display: none;">
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+                </div>
+                <div class="progress-text" id="progressText">Interview Progress: 0%</div>
+            </div>
+
+            <div class="messages" id="messages"></div>
+
+            <div id="typingIndicator" class="typing-indicator" style="display: none;">
+                <span>AI Interviewer is thinking</span>
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            </div>
+
+            <div class="input-container">
+                <div class="input-group">
+                    <textarea id="messageInput" class="input-field" placeholder="Type your answer here..."
+                        onkeydown="handleKeyDown(event)" disabled></textarea>
+                </div>
+                <button class="send-button" id="sendButton" onclick="sendMessage()" disabled>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22,2 15,22 11,13 2,9"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div id="completionScreen" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Interview State Management
+        class ExcelInterviewState {
+            constructor() {
+                this.currentPhase = 'introduction';
+                this.questionCount = 0;
+                this.maxQuestions = 12;
+                this.candidateResponses = [];
+                this.skillScore = 0;
+                this.phaseScores = {
+                    introduction: 0,
+                    basic: 0,
+                    intermediate: 0,
+                    advanced: 0
+                };
+                this.startTime = Date.now();
+                this.candidateLevel = 'beginner'; // Will be determined during intro
+            }
+
+            updateProgress() {
+                const progress = Math.min((this.questionCount / this.maxQuestions) * 100, 100);
+                document.getElementById('progressFill').style.width = progress + '%';
+                document.getElementById('progressText').textContent = `Interview Progress: ${Math.round(progress)}%`;
+            }
+
+            getCurrentPhase() {
+                if (this.questionCount <= 2) return 'Introduction & Warm-up';
+                if (this.questionCount <= 7) return 'Core Skills Assessment';
+                if (this.questionCount <= 10) return 'Advanced Topics';
+                return 'Wrap-up & Summary';
+            }
+        }
+
+        // Question Database
+        const questionDatabase = {
+            introduction: [
+                "Hi! I'm your AI Excel interviewer. I'll be assessing your Excel skills today. To start, could you tell me about your experience with Microsoft Excel? How long have you been using it and in what context?",
+                "Great! To help me tailor the questions to your level, could you rate your Excel skills on a scale of 1-10, where 1 is basic data entry and 10 is advanced VBA programming?"
+            ],
+            basic: [
+                "Let's start with a practical scenario. You have a dataset of monthly sales figures in cells A1:A12. How would you calculate the total and average sales? Please walk me through the exact formulas you'd use.",
+                "You notice some cells showing #DIV/0! error in your spreadsheet. What does this error mean and how would you fix it?",
+                "If you need to count how many cells in column B contain values greater than 100, which function would you use and how?"
+            ],
+            intermediate: [
+                "You have a sales database with columns for Salesperson, Region, Product, and Sales Amount. How would you find the total sales for a specific salesperson in a specific region? Walk me through your approach.",
+                "Explain the difference between VLOOKUP and INDEX-MATCH functions. When would you use one over the other?",
+                "You have a large dataset and need to create a summary showing sales by product category. How would you approach this using Excel's built-in tools?"
+            ],
+            advanced: [
+                "You're working with a complex dataset that requires multiple criteria lookups. Standard VLOOKUP isn't sufficient. How would you handle a situation where you need to lookup based on multiple columns?",
+                "Describe how you would clean and prepare a messy dataset that contains duplicate entries, inconsistent formatting, and missing values. What Excel features would you use?",
+                "If you needed to automate a repetitive task in Excel, what options would you consider? Can you explain when you might use macros versus other solutions?"
+            ]
+        };
+
+        // Response evaluation patterns
+        const evaluationCriteria = {
+            basic: {
+                keywords: ['SUM', 'AVERAGE', 'COUNT', 'formula', '=', 'function'],
+                concepts: ['cell reference', 'range', 'basic functions']
+            },
+            intermediate: {
+                keywords: ['VLOOKUP', 'INDEX', 'MATCH', 'SUMIFS', 'COUNTIFS', 'pivot', 'criteria'],
+                concepts: ['lookup functions', 'conditional logic', 'data analysis']
+            },
+            advanced: {
+                keywords: ['array formula', 'macro', 'VBA', 'Power Query', 'data model', 'automation'],
+                concepts: ['complex formulas', 'automation', 'data transformation']
+            }
+        };
+
+        // Initialize interview state
+        let interviewState = new ExcelInterviewState();
+        let currentQuestionIndex = 0;
+        let currentQuestionSet = 'introduction';
+
+        // DOM Elements
+        const messagesContainer = document.getElementById('messages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const typingIndicator = document.getElementById('typingIndicator');
+
+        function startInterview() {
+            document.getElementById('welcomeScreen').style.display = 'none';
+            document.getElementById('chatInterface').style.display = 'flex';
+
+            messageInput.disabled = false;
+            sendButton.disabled = false;
+
+            // Start with first question
+            setTimeout(() => {
+                askNextQuestion();
+            }, 500);
+        }
+
+        function addMessage(content, isUser = false, isPhaseIndicator = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'ai'}`;
+
+            let messageContent = `<div class="message-content">`;
+
+            if (isPhaseIndicator) {
+                messageContent += `<div class="phase-indicator">📍 ${interviewState.getCurrentPhase()}</div>`;
+            }
+
+            messageContent += content + '</div>';
+            messageDiv.innerHTML = messageContent;
+
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function showTyping() {
+            typingIndicator.style.display = 'flex';
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function hideTyping() {
+            typingIndicator.style.display = 'none';
+        }
+
+        function askNextQuestion() {
+            showTyping();
+
+            setTimeout(() => {
+                hideTyping();
+
+                let question;
+                let showPhaseIndicator = false;
+
+                if (currentQuestionSet === 'introduction' && currentQuestionIndex < questionDatabase.introduction.length) {
+                    question = questionDatabase.introduction[currentQuestionIndex];
+                } else if (currentQuestionSet === 'introduction') {
+                    currentQuestionSet = 'basic';
+                    currentQuestionIndex = 0;
+                    showPhaseIndicator = true;
+                    question = questionDatabase.basic[currentQuestionIndex];
+                } else if (currentQuestionSet === 'basic' && currentQuestionIndex < questionDatabase.basic.length) {
+                    question = questionDatabase.basic[currentQuestionIndex];
+                } else if (currentQuestionSet === 'basic') {
+                    currentQuestionSet = 'intermediate';
+                    currentQuestionIndex = 0;
+                    showPhaseIndicator = true;
+                    question = questionDatabase.intermediate[currentQuestionIndex];
+                } else if (currentQuestionSet === 'intermediate' && currentQuestionIndex < questionDatabase.intermediate.length) {
+                    question = questionDatabase.intermediate[currentQuestionIndex];
+                } else if (currentQuestionSet === 'intermediate') {
+                    currentQuestionSet = 'advanced';
+                    currentQuestionIndex = 0;
+                    showPhaseIndicator = true;
+                    question = questionDatabase.advanced[currentQuestionIndex];
+                } else if (currentQuestionSet === 'advanced' && currentQuestionIndex < questionDatabase.advanced.length) {
+                    question = questionDatabase.advanced[currentQuestionIndex];
+                } else {
+                    // Interview complete
+                    completeInterview();
+                    return;
+                }
+
+                addMessage(question, false, showPhaseIndicator);
+                interviewState.questionCount++;
+                interviewState.updateProgress();
+
+                currentQuestionIndex++;
+
+            }, Math.random() * 2000 + 1000); // Random delay between 1-3 seconds
+        }
+
+        function evaluateResponse(response, questionType) {
+            const criteria = evaluationCriteria[questionType] || evaluationCriteria.basic;
+            let score = 0;
+
+            // Convert response to lowercase for keyword matching
+            const lowerResponse = response.toLowerCase();
+
+            // Check for relevant keywords
+            let keywordMatches = 0;
+            criteria.keywords.forEach(keyword => {
+                if (lowerResponse.includes(keyword.toLowerCase())) {
+                    keywordMatches++;
+                }
+            });
+
+            // Calculate base score from keyword matches
+            const keywordScore = Math.min((keywordMatches / criteria.keywords.length) * 60, 60);
+
+            // Add points for response length and detail (indicates thoughtfulness)
+            const lengthScore = Math.min(response.length / 50 * 20, 20);
+
+            // Add points for mentioning Excel-specific concepts
+            let conceptScore = 0;
+            criteria.concepts.forEach(concept => {
+                if (lowerResponse.includes(concept.toLowerCase())) {
+                    conceptScore += 5;
+                }
+            });
+
+            score = keywordScore + lengthScore + Math.min(conceptScore, 20);
+
+            // Ensure score is between 0-100
+            return Math.min(Math.max(score, 0), 100);
+        }
+
+        function generateFeedback(score, questionType) {
+            let feedback = "";
+
+            if (score >= 80) {
+                feedback = "Excellent answer! You demonstrated strong understanding of Excel concepts and provided a comprehensive solution approach.";
+            } else if (score >= 60) {
+                feedback = "Good response! You covered the key points. Consider elaborating on specific formula syntax or alternative approaches.";
+            } else if (score >= 40) {
+                feedback = "Decent understanding shown. Try to be more specific about Excel functions and provide step-by-step approaches.";
+            } else {
+                feedback = "I see you have some understanding. Focus on learning the core Excel functions and practice with real scenarios.";
+            }
+
+            return feedback;
+        }
+
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (message === '') return;
+
+            // Add user message
+            addMessage(message, true);
+
+            // Store response for evaluation
+            const currentScore = evaluateResponse(message, currentQuestionSet);
+            interviewState.candidateResponses.push({
+                question: currentQuestionSet,
+                response: message,
+                score: currentScore,
+                timestamp: Date.now()
+            });
+
+            // Update phase scores
+            interviewState.phaseScores[currentQuestionSet] =
+                (interviewState.phaseScores[currentQuestionSet] + currentScore) / 2;
+
+            // Update overall skill score
+            const totalResponses = interviewState.candidateResponses.length;
+            const totalScore = interviewState.candidateResponses.reduce((sum, resp) => sum + resp.score, 0);
+            interviewState.skillScore = totalScore / totalResponses;
+
+            // Clear input
+            messageInput.value = '';
+            messageInput.disabled = true;
+            sendButton.disabled = true;
+
+            // Show feedback and next question
+            setTimeout(() => {
+                showTyping();
+
+                setTimeout(() => {
+                    hideTyping();
+
+                    // Provide feedback
+                    const feedback = generateFeedback(currentScore, currentQuestionSet);
+                    addMessage(feedback);
+
+                    // Ask next question after a short delay
+                    setTimeout(() => {
+                        askNextQuestion();
+                        messageInput.disabled = false;
+                        sendButton.disabled = false;
+                        messageInput.focus();
+                    }, 2000);
+
+                }, 1500);
+            }, 500);
+        }
+
+        function completeInterview() {
+            const duration = Math.round((Date.now() - interviewState.startTime) / 1000 / 60);
+            const finalScore = Math.round(interviewState.skillScore);
+
+            let performanceLevel = '';
+            if (finalScore >= 80) performanceLevel = 'Expert';
+            else if (finalScore >= 65) performanceLevel = 'Advanced';
+            else if (finalScore >= 50) performanceLevel = 'Intermediate';
+            else if (finalScore >= 35) performanceLevel = 'Basic';
+            else performanceLevel = 'Beginner';
+
+            const completionHTML = `
+                <div class="interview-complete">
+                    <h2>🎉 Interview Complete!</h2>
+                    <div class="score-display">${finalScore}%</div>
+                    <p style="font-size: 1.2em; margin-bottom: 20px;">
+                        <strong>Performance Level: ${performanceLevel}</strong><br>
+                        Duration: ${duration} minutes
+                    </p>
+                    <button class="report-button" onclick="generateReport()">
+                        📊 View Detailed Report
+                    </button>
+                </div>
+            `;
+
+            document.getElementById('chatInterface').style.display = 'none';
+            document.getElementById('completionScreen').innerHTML = completionHTML;
+            document.getElementById('completionScreen').style.display = 'block';
+        }
+
+        function generateReport() {
+            const reportData = {
+                candidateInfo: {
+                    finalScore: Math.round(interviewState.skillScore),
+                    duration: Math.round((Date.now() - interviewState.startTime) / 1000 / 60),
+                    questionsAnswered: interviewState.candidateResponses.length,
+                    date: new Date().toLocaleDateString()
+                },
+                phaseScores: interviewState.phaseScores,
+                responses: interviewState.candidateResponses,
+                recommendations: generateRecommendations(interviewState.skillScore)
+            };
+
+            // Create and download report
+            const reportHTML = generateReportHTML(reportData);
+
+            // Open report in new tab
+            const newWindow = window.open('', '_blank');
+            newWindow.document.write(reportHTML);
+            newWindow.document.close();
+        }
+
+        function generateRecommendations(score) {
+            let recommendations = [];
+
+            if (score < 40) {
+                recommendations = [
+                    "Focus on mastering basic Excel functions (SUM, AVERAGE, COUNT)",
+                    "Practice cell referencing and range selection",
+                    "Learn about common Excel errors and how to troubleshoot them",
+                    "Take an Excel basics course or tutorial"
+                ];
+            } else if (score < 65) {
+                recommendations = [
+                    "Strengthen knowledge of lookup functions (VLOOKUP, INDEX-MATCH)",
+                    "Practice with conditional functions (IF, SUMIFS, COUNTIFS)",
+                    "Learn to create and use Pivot Tables effectively",
+                    "Work on data analysis scenarios and case studies"
+                ];
+            } else if (score < 80) {
+                recommendations = [
+                    "Explore advanced functions and array formulas",
+                    "Learn Power Query for data transformation",
+                    "Practice with complex data modeling scenarios",
+                    "Consider learning basic VBA for automation"
+                ];
+            } else {
+                recommendations = [
+                    "Excellent Excel skills! Consider advanced VBA programming",
+                    "Explore Power BI integration with Excel",
+                    "Look into advanced data analysis techniques",
+                    "Consider mentoring others or teaching Excel skills"
+                ];
+            }
+
+            return recommendations;
+        }
+
+        function generateReportHTML(data) {
+            return `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Excel Skills Assessment Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #f5f5f5; }
+        .report-container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { text-align: center; border-bottom: 3px solid #667eea; padding-bottom: 20px; margin-bottom: 30px; }
+        .score-circle { width: 120px; height: 120px; border-radius: 50%; background: conic-gradient(#667eea ${data.candidateInfo.finalScore * 3.6}deg, #e5e7eb 0deg); margin: 20px auto; display: flex; align-items: center; justify-content: center; }
+        .score-text { background: white; border-radius: 50%; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; }
+        .section { margin: 30px 0; }
+        .section h3 { color: #2c3e50; border-bottom: 2px solid #667eea; padding-bottom: 10px; }
+        .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0; }
+        .metric-card { background: #f8fafc; padding: 15px; border-radius: 8px; text-align: center; }
+        .recommendations { background: #f0f9ff; padding: 20px; border-radius: 8px; border-left: 4px solid #667eea; }
+        .recommendations ul { margin: 10px 0; padding-left: 20px; }
+        @media print { body { background: white; } .report-container { box-shadow: none; } }
+    </style>
+</head>
+<body>
+    <div class="report-container">
+        <div class="header">
+            <h1>Excel Skills Assessment Report</h1>
+            <p>AI-Powered Technical Interview Results</p>
+            <div class="score-circle">
+                <div class="score-text">${data.candidateInfo.finalScore}%</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>📊 Interview Summary</h3>
+            <div class="metric-grid">
+                <div class="metric-card">
+                    <h4>Final Score</h4>
+                    <p style="font-size: 24px; font-weight: bold; color: #667eea;">${data.candidateInfo.finalScore}%</p>
+                </div>
+                <div class="metric-card">
+                    <h4>Duration</h4>
+                    <p style="font-size: 18px;">${data.candidateInfo.duration} minutes</p>
+                </div>
+                <div class="metric-card">
+                    <h4>Questions Answered</h4>
+                    <p style="font-size: 18px;">${data.candidateInfo.questionsAnswered}</p>
+                </div>
+                <div class="metric-card">
+                    <h4>Assessment Date</h4>
+                    <p style="font-size: 18px;">${data.candidateInfo.date}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>📈 Skill Areas Performance</h3>
+            <div style="margin: 20px 0;">
+                <p><strong>Basic Functions:</strong> ${Math.round(data.phaseScores.basic || 0)}%</p>
+                <div style="background: #e5e7eb; border-radius: 10px; height: 20px;">
+                    <div style="background: #667eea; height: 20px; border-radius: 10px; width: ${data.phaseScores.basic || 0}%;"></div>
+                </div>
+            </div>
+            <div style="margin: 20px 0;">
+                <p><strong>Intermediate Skills:</strong> ${Math.round(data.phaseScores.intermediate || 0)}%</p>
+                <div style="background: #e5e7eb; border-radius: 10px; height: 20px;">
+                    <div style="background: #667eea; height: 20px; border-radius: 10px; width: ${data.phaseScores.intermediate || 0}%;"></div>
+                </div>
+            </div>
+            <div style="margin: 20px 0;">
+                <p><strong>Advanced Topics:</strong> ${Math.round(data.phaseScores.advanced || 0)}%</p>
+                <div style="background: #e5e7eb; border-radius: 10px; height: 20px;">
+                    <div style="background: #667eea; height: 20px; border-radius: 10px; width: ${data.phaseScores.advanced || 0}%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>💡 Personalized Recommendations</h3>
+            <div class="recommendations">
+                <h4>Areas for Improvement:</h4>
+                <ul>
+                    ${data.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>📝 Interview Responses Summary</h3>
+            <p>Total responses analyzed: <strong>${data.responses.length}</strong></p>
+            <p>Average response score: <strong>${Math.round(data.candidateInfo.finalScore)}%</strong></p>
+            <p style="margin-top: 20px; font-size: 14px; color: #666;">
+                This report was generated by AI Excel Mock Interviewer on ${new Date().toLocaleString()}.
+                Results are based on conversational assessment and should be used as guidance alongside other evaluation methods.
+            </p>
+        </div>
+    </div>
+</body>
+</html>`;
+        }
+
+        function handleKeyDown(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                if (!messageInput.disabled && messageInput.value.trim() !== '') {
+                    sendMessage();
+                }
+            }
+        }
+
+        // Auto-focus on message input when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            if (messageInput) {
+                messageInput.focus();
+            }
+        });
+
+        // Auto-resize textarea
+        messageInput.addEventListener('input', function () {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+    </script>
+</body>
+
+</html>
